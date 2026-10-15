@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="bAIcycle">
+<meta name="theme-color" content="#05114B">
+<title>bAIcycle live demo · Sentigrate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #05114B;
+    --navy-2: #0B1A5E;
+    --navy-3: #16246E;
+    --cyan: #00FFDA;
+    --gray: #B4B8C9;
+    --light: #F4F6FB;
+    --white: #FFFFFF;
+    --warn: #FFC94D;
+    --bg: var(--navy);
+    --panel: var(--navy-2);
+    --ink: var(--white);
+    --muted: var(--gray);
+    --grid: rgba(180, 184, 201, 0.16);
+    color-scheme: dark;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    background: var(--bg);
+  }
+  /* The brand display is navy in both modes; dark mode deepens it slightly. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #040E3F; --panel: #0A1757; }
+  }
+  :root[data-theme="dark"] { --bg: #040E3F; --panel: #0A1757; }
+  html, body { height: 100%; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Open Sans", "Helvetica Neue", Arial, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+  .wrap { flex: 1; display: flex; flex-direction: column; min-height: 0;
+    padding: max(14px, env(safe-area-inset-top, 0px)) 18px 14px; position: relative; z-index: 1; }
+
+  /* Brand bar */
+  .brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .wordmark { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em; }
+  .wordmark svg { width: 26px; height: 26px; }
+  .product { font-weight: 800; font-size: 1.05rem; }
+  .product b { color: var(--cyan); font-weight: 800; }
+
+  /* ---------- Welcome screen ---------- */
+  #welcome { background: var(--bg); overflow: hidden; }
+  .rings { position: absolute; right: -30vmin; top: -18vmin; width: 95vmin; height: 95vmin; z-index: 0; opacity: 0.55; pointer-events: none; }
+  .rings circle { fill: none; stroke: var(--cyan); }
+  .welcome-body { flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 560px; width: 100%; margin: 0 auto; padding: 8px 0; min-height: 0; }
+  .welcome h1 { font-size: clamp(2rem, 8.5vw, 3.2rem); line-height: 1.08; font-weight: 800; margin: 0 0 10px; letter-spacing: -0.02em; }
+  .lead { color: var(--light); font-size: clamp(1rem, 4vw, 1.2rem); line-height: 1.5; margin: 0 0 22px; max-width: 34ch; }
+  .steps { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 14px; }
+  .steps li { display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; font-size: clamp(1rem, 4.2vw, 1.15rem); line-height: 1.45; }
+  .steps .n { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--cyan); color: var(--navy); font-weight: 800; font-size: 1.1rem; }
+  .steps strong { display: block; font-weight: 700; }
+  .steps span.sub { color: var(--gray); font-size: 0.92em; }
+  .go {
+    align-self: stretch; border: 0; border-radius: 18px; padding: 22px 24px;
+    background: var(--cyan); color: var(--navy); font-weight: 800; font-size: clamp(1.3rem, 6vw, 1.7rem);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    box-shadow: 0 0 0 0 rgba(0,255,218,0.55); animation: pulse 2.4s ease-out infinite;
+  }
+  .go svg { width: 28px; height: 28px; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,255,218,0.5); } 70% { box-shadow: 0 0 0 18px rgba(0,255,218,0); } 100% { box-shadow: 0 0 0 0 rgba(0,255,218,0); } }
+  .safety { margin: 14px 0 0; color: var(--gray); font-size: 0.92rem; display: flex; gap: 8px; align-items: flex-start; }
+  .msg { margin: 12px 0 0; color: var(--warn); font-size: 0.98rem; min-height: 1.2em; }
+
+  /* ---------- Live screen ---------- */
+  #live .wrap { gap: 12px; }
+  .live-grid { flex: 1; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; min-height: 0; }
+  .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .score { background: var(--panel); border-radius: 18px; padding: 14px 14px 14px; position: relative; overflow: hidden; }
+  .score h2 { margin: 0; font-size: 0.98rem; font-weight: 700; }
+  .score .q { margin: 2px 0 6px; color: var(--gray); font-size: 0.82rem; line-height: 1.3; }
+  .score .val { font-size: clamp(2.8rem, 15vw, 4.6rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .score .label { font-weight: 700; font-size: 1rem; margin-top: 6px; min-height: 1.4em; }
+  .bar { height: 10px; border-radius: 6px; background: rgba(180,184,201,0.2); margin-top: 10px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--cyan); transition: width 0.25s linear, background-color 0.4s; }
+  .score.flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { 0% { background: var(--warn); color: var(--navy); } 100% { background: var(--panel); } }
+  .score .count { position: absolute; top: 12px; right: 14px; font-size: 0.8rem; color: var(--gray); text-align: right; line-height: 1.2; }
+  .score .count b { display: block; font-size: 1.3rem; color: var(--ink); font-weight: 800; }
+
+  .hint { display: flex; align-items: center; gap: 12px; background: rgba(0,255,218,0.1); border: 1.5px solid rgba(0,255,218,0.45);
+    border-radius: 14px; padding: 10px 14px; font-size: clamp(0.95rem, 4vw, 1.08rem); font-weight: 600; min-height: 56px; }
+  .hint .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--cyan); animation: blink 1.6s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+  #hintText { transition: opacity 0.35s; }
+
+  .charts { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; min-height: 0; }
+  .chart { background: var(--panel); border-radius: 18px; padding: 10px 12px 8px; display: flex; flex-direction: column; min-height: 0; }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .chart h3 { margin: 0; font-size: 0.92rem; font-weight: 700; }
+  .chart h3 span { color: var(--gray); font-weight: 400; }
+  .legend { display: flex; gap: 10px; font-size: 0.78rem; color: var(--gray); }
+  .legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  .chart canvas { flex: 1; width: 100%; min-height: 60px; display: block; margin-top: 4px; }
+
+  .live-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--gray); font-size: 0.8rem; }
+  .stop { background: transparent; border: 1.5px solid rgba(180,184,201,0.5); color: var(--light); border-radius: 999px; padding: 7px 16px; font-weight: 600; font-size: 0.85rem; }
+
+  /* Landscape phones / tablets on their side */
+  @media (orientation: landscape) {
+    .live-grid { grid-template-columns: minmax(260px, 0.9fr) 1.4fr; grid-template-rows: auto 1fr; }
+    .scores { grid-column: 1; grid-row: 1 / span 2; grid-template-columns: 1fr; align-content: start; }
+    .hint { grid-column: 2; grid-row: 1; }
+    .charts { grid-column: 2; grid-row: 2; }
+    .welcome-body { max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 36px; align-content: center; }
+    .welcome-body h1, .welcome-body .lead { grid-column: 1; }
+    .welcome-body .steps { grid-column: 2; grid-row: 1 / span 3; margin-bottom: 0; align-self: center; }
+    .welcome-body .go-wrap { grid-column: 1; }
+  }
+  @media (orientation: landscape) and (max-height: 500px) {
+    .score .val { font-size: 2.6rem; }
+    .score .q { display: none; }
+    .welcome h1 { font-size: 1.9rem; }
+    .lead { margin-bottom: 12px; font-size: 1rem; }
+    .steps { gap: 8px; } .steps li { font-size: 0.95rem; }
+    .go { padding: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .go, .hint .dot { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ WELCOME / INSTRUCTIONS ============ -->
+<section class="screen welcome active" id="welcome" aria-labelledby="wTitle">
+  <svg class="rings" viewBox="0 0 200 200" aria-hidden="true">
+    <circle cx="100" cy="100" r="96" stroke-width="0.6"/>
+    <circle cx="100" cy="100" r="78" stroke-width="0.6" opacity="0.7"/>
+    <circle cx="100" cy="100" r="60" stroke-width="0.6" opacity="0.5"/>
+    <circle cx="100" cy="100" r="42" stroke-width="0.6" opacity="0.35"/>
+  </svg>
+  <div class="wrap">
+    <div class="brand">
+      <div class="wordmark">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#00FFDA" stroke-width="3"/><circle cx="16" cy="16" r="5" fill="#00FFDA"/></svg>
+        sentigrate
+      </div>
+      <div class="product">b<b>AI</b>cycle</div>
+    </div>
+
+    <div class="welcome-body">
+      <h1 id="wTitle">Spring op de fiets en test je fietspad</h1>
+      <p class="lead">Deze smartphone meet trillingen en stuurbewegingen, net zoals de bAIcycle-app dat doet op echte fietspaden.</p>
+
+      <ol class="steps">
+        <li><span class="n">1</span><div><strong>Ga op de fiets zitten.</strong><span class="sub">Hij staat vast op een rollenbank, je kan niet omvallen.</span></div></li>
+        <li><span class="n">2</span><div><strong>Tik op de knop hieronder.</strong><span class="sub">Vraagt je telefoon om toegang tot beweging? Kies dan Sta toe.</span></div></li>
+        <li><span class="n">3</span><div><strong>Beweeg rustig.</strong><span class="sub">Trap, tik zacht op het stuur of stuur een beetje naar links en rechts.</span></div></li>
+        <li><span class="n">4</span><div><strong>Kijk wat er gebeurt.</strong><span class="sub">De grafieken en scores reageren meteen op je bewegingen.</span></div></li>
+      </ol>
+
+      <div class="go-wrap">
+        <button class="go" id="startBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>
+          Start de meting
+        </button>
+        <p class="msg" id="msg" role="status"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LIVE ============ -->
+<section class="screen" id="live" aria-label="Live meting">
+  <div class="wrap">
+    <div class="brand">
+      <div class="wordmark">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#00FFDA" stroke-width="3"/><circle cx="16" cy="16" r="5" fill="#00FFDA"/></svg>
+        sentigrate
+      </div>
+      <div class="product">b<b>AI</b>cycle live</div>
+    </div>
+
+    <div class="live-grid">
+      <div class="scores">
+        <div class="score" id="comfortCard">
+          <h2>Comfortscore</h2>
+          <p class="q">Hoe vlot rijdt het? 100 is spiegelglad.</p>
+          <div class="val" id="comfortVal">–</div>
+          <div class="label" id="comfortLabel">&nbsp;</div>
+          <div class="bar"><i id="comfortBar"></i></div>
+        </div>
+        <div class="score" id="swerveCard">
+          <div class="count">uitwijkingen<b id="swerveCount">0</b></div>
+          <h2>Swervescore</h2>
+          <p class="q">Hoeveel stuur je uit? 0 is rechtdoor.</p>
+          <div class="val" id="swerveVal">–</div>
+          <div class="label" id="swerveLabel">&nbsp;</div>
+          <div class="bar"><i id="swerveBar"></i></div>
+        </div>
+      </div>
+
+      <div class="hint" role="status" aria-live="polite"><span class="dot"></span><span id="hintText">Tik zacht op het stuur en kijk naar de comfortscore.</span></div>
+
+      <div class="charts">
+        <div class="chart">
+          <div class="chart-head">
+            <h3>Versnellingsmeter <span>trillingen, m/s²</span></h3>
+            <div class="legend"><span><i style="background:#00FFDA"></i>x</span><span><i style="background:#FFFFFF"></i>y</span><span><i style="background:#8E94B0"></i>z</span></div>
+          </div>
+          <canvas id="accCanvas"></canvas>
+        </div>
+        <div class="chart">
+          <div class="chart-head">
+            <h3>Gyroscoop <span>draaiingen, °/s</span></h3>
+            <div class="legend"><span><i style="background:#00FFDA"></i>x</span><span><i style="background:#FFFFFF"></i>y</span><span><i style="background:#8E94B0"></i>z</span></div>
+          </div>
+          <canvas id="gyroCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="live-foot">
+      <span id="footNote">Live sensordata van deze smartphone</span>
+      <button class="stop" id="stopBtn">Opnieuw beginnen</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  // ---------- Settings ----------
+  const WINDOW_MS = 8000;          // visible chart history
+  const COMFORT_WIN_MS = 1500;     // rolling window for acc-magnitude variance
+  const IDLE_RESET_MS = 60000;     // back to the welcome screen after 1 min without movement
+  const SWERVE_PEAK = 45;          // °/s steering rate that counts as a swerve peak
+  const SWERVE_GAP_MS = 1200;      // left-right (or right-left) peaks within this time = swerve
+
+  // Quantile table: acc-magnitude variance ((m/s²)²) -> comfort percentile.
+  // Demo calibration in the spirit of bAIcycle's quantile interpolation; not the production table.
+  const COMFORT_Q = [
+    [0.01, 100], [0.05, 95], [0.15, 85], [0.4, 70], [1.0, 52],
+    [2.5, 34], [6, 18], [14, 7], [30, 0]
+  ];
+
+  const COL = { x: '#00FFDA', y: '#FFFFFF', z: '#8E94B0' };
+  const $ = id => document.getElementById(id);
+
+  // ---------- State ----------
+  const acc = [], gyro = [], magBuf = [], yawBuf = [];
+  let listening = false, demo = false, demoTimer = null, gotData = false;
+  let comfortShown = null, swerveShown = 0, swerveCount = 0;
+  let lastPeak = null, lastSwerveAt = 0, lastActive = performance.now();
+  let gravity = { x: 0, y: 0, z: 9.81 }, wakeLock = null;
+
+  function trim(buf, now, ms) { while (buf.length && now - buf[0].t > ms) buf.shift(); }
+
+  // ---------- Scores ----------
+  function comfortFromVariance(v) {
+    if (v <= COMFORT_Q[0][0]) return 100;
+    for (let i = 1; i < COMFORT_Q.length; i++) {
+      const [v1, s1] = COMFORT_Q[i - 1], [v2, s2] = COMFORT_Q[i];
+      if (v <= v2) {
+        const f = (Math.log(v) - Math.log(v1)) / (Math.log(v2) - Math.log(v1));
+        return s1 + f * (s2 - s1);
+      }
+    }
+    return 0;
+  }
+  function variance(arr) {
+    if (arr.length < 5) return 0;
+    let m = 0; for (const p of arr) m += p.v; m /= arr.length;
+    let s = 0; for (const p of arr) s += (p.v - m) ** 2;
+    return s / (arr.length - 1);
+  }
+  function comfortLabel(s) {
+    if (s >= 85) return 'Spiegelglad';
+    if (s >= 65) return 'Comfortabel';
+    if (s >= 45) return 'Wat hobbelig';
+    if (s >= 25) return 'Hobbelig';
+    return 'Kasseienstrook!';
+  }
+  function swerveLabel(s) {
+    if (s < 12) return 'Mooi rechtdoor';
+    if (s < 35) return 'Licht sturen';
+    if (s < 65) return 'Slingeren';
+    return 'Uitwijkmanoeuvre!';
+  }
+  function scoreColor(goodness) { // 0 bad .. 1 good
+    if (goodness > 0.6) return '#00FFDA';
+    if (goodness > 0.3) return '#FFC94D';
+    return '#FF7A8A';
+  }
+
+  // ---------- Sensor input ----------
+  function ingest(t, a, aIncl, r) {
+    // a: acceleration without gravity (may be null), aIncl: with gravity, r: rotation {x,y,z} °/s
+    if (aIncl) {
+      if (a) gravity = { x: aIncl.x - a.x, y: aIncl.y - a.y, z: aIncl.z - a.z };
+      else { const k = 0.05; gravity = { x: gravity.x + k * (aIncl.x - gravity.x), y: gravity.y + k * (aIncl.y - gravity.y), z: gravity.z + k * (aIncl.z - gravity.z) }; }
+      const lin = a || { x: aIncl.x - gravity.x, y: aIncl.y - gravity.y, z: aIncl.z - gravity.z };
+      acc.push({ t, x: lin.x, y: lin.y, z: lin.z }); trim(acc, t, WINDOW_MS);
+      // bAIcycle comfort input: magnitude of the raw accelerometer vector
+      magBuf.push({ t, v: Math.hypot(aIncl.x, aIncl.y, aIncl.z) }); trim(magBuf, t, COMFORT_WIN_MS);
+    }
+    if (r) {
+      gyro.push({ t, x: r.x, y: r.y, z: r.z }); trim(gyro, t, WINDOW_MS);
+      // Steering rate = rotation around the vertical axis, whatever way the phone is mounted.
+      const gn = Math.hypot(gravity.x, gravity.y, gravity.z) || 1;
+      const yaw = (r.x * gravity.x + r.y * gravity.y + r.z * gravity.z) / gn;
+      yawBuf.push({ t, v: yaw }); trim(yawBuf, t, 1500);
+      detectSwerve(t, yaw);
+    }
+    gotData = true;
+  }
+
+  function detectSwerve(t, yaw) {
+    if (Math.abs(yaw) < SWERVE_PEAK) return;
+    const sign = Math.sign(yaw);
+    if (lastPeak && lastPeak.sign !== sign && t - lastPeak.t < SWERVE_GAP_MS && t - lastSwerveAt > 1500) {
+      lastSwerveAt = t; swerveCount++;
+      $('swerveCount').textContent = swerveCount;
+      const card = $('swerveCard'); card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
+      showHint('Uitwijkmanoeuvre gedetecteerd! Zo herkent bAIcycle onveilige plekken.', true);
+      lastPeak = null; return;
+    }
+    if (!lastPeak || lastPeak.sign !== sign || t - lastPeak.t > 300) lastPeak = { t, sign };
+  }
+
+  function onMotion(e) {
+    const r = e.rotationRate;
+    ingest(performance.now(),
+      e.acceleration && e.acceleration.x != null ? e.acceleration : null,
+      e.accelerationIncludingGravity && e.accelerationIncludingGravity.x != null ? e.accelerationIncludingGravity : null,
+      r && r.alpha != null ? { x: r.beta, y: r.gamma, z: r.alpha } : null);
+  }
+
+  // ---------- Demo data (for screens without motion sensors) ----------
+  function startDemo() {
+    demo = true;
+    const t0 = performance.now();
+    let bumpUntil = 0, swerveAt = 0;
+    demoTimer = setInterval(() => {
+      const t = performance.now(), s = (t - t0) / 1000, n = (k) => (Math.random() - 0.5) * k;
+      if (Math.random() < 0.004) bumpUntil = t + 1800;
+      if (Math.random() < 0.003) swerveAt = t;
+      const bump = t < bumpUntil ? 4 : 0.25;
+      const ds = (t - swerveAt) / 1000;
+      const steer = ds < 1 ? Math.sin(ds * Math.PI * 2) * 85 : Math.sin(s * 0.8) * 6;
+      const lin = { x: n(bump), y: n(bump) + Math.sin(s * 9) * 0.15, z: n(bump * 1.4) };
+      ingest(t, lin, { x: lin.x, y: lin.y, z: lin.z + 9.81 }, { x: n(8), y: n(8), z: steer + n(4) });
+    }, 1000 / 60);
+  }
+
+  // ---------- Screens & flow ----------
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  }
+
+  async function keepAwake() {
+    try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch (_) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+
+  async function begin() {
+    $('msg').textContent = '';
+    keepAwake();
+    if (!listening && !demo) {
+      try {
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          const res = await DeviceMotionEvent.requestPermission();
+          if (res !== 'granted') {
+            $('msg').textContent = 'Zonder toegang tot beweging werkt de meting niet. Vraag een medewerker om hulp.';
+            return;
+          }
+        }
+      } catch (_) {
+        $('msg').textContent = 'De bewegingssensoren konden niet worden gestart. Open deze pagina rechtstreeks in Safari.';
+        return;
+      }
+      window.addEventListener('devicemotion', onMotion);
+      listening = true;
+      setTimeout(() => {
+        if (!gotData && !demo) {
+          $('footNote').textContent = 'Geen sensoren gevonden: dit is gesimuleerde data';
+          startDemo();
+        }
+      }, 1500);
+    }
+    resetSession();
+    showScreen('live');
+  }
+
+  function resetSession() {
+    swerveCount = 0; $('swerveCount').textContent = '0';
+    comfortShown = null; swerveShown = 0; lastPeak = null;
+    lastActive = performance.now();
+    hintIndex = 0; showHint(HINTS[0]);
+  }
+
+  $('startBtn').addEventListener('click', begin);
+  $('stopBtn').addEventListener('click', () => showScreen('welcome'));
+
+  // ---------- Hints ----------
+  const HINTS = [
+    'Tik zacht op het stuur en kijk naar de comfortscore.',
+    'Stuur snel even naar links en terug: zo meet je een uitwijkmanoeuvre.',
+    'Trap rustig door. Zie je de trillingen in de bovenste grafiek?',
+    'Hoe stiller het stuur, hoe hoger je comfortscore.',
+    'bAIcycle verzamelt deze data op echte fietspaden om ze beter te maken.'
+  ];
+  let hintIndex = 0, hintHoldUntil = 0;
+  function showHint(text, urgent) {
+    const el = $('hintText');
+    el.style.opacity = 0;
+    setTimeout(() => { el.textContent = text; el.style.opacity = 1; }, 200);
+    if (urgent) hintHoldUntil = performance.now() + 4000;
+  }
+  setInterval(() => {
+    if (!$('live').classList.contains('active') || performance.now() < hintHoldUntil) return;
+    hintIndex = (hintIndex + 1) % HINTS.length; showHint(HINTS[hintIndex]);
+  }, 7000);
+
+  // ---------- Drawing ----------
+  function setupCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+  const scales = new Map();
+  function drawChart(canvas, buf, minRange, now) {
+    const { ctx, w, h } = setupCanvas(canvas);
+    ctx.clearRect(0, 0, w, h);
+    if (w < 10 || h < 10) return;
+    let peak = minRange;
+    for (const p of buf) peak = Math.max(peak, Math.abs(p.x), Math.abs(p.y), Math.abs(p.z));
+    const prev = scales.get(canvas) || minRange, target = peak * 1.15;
+    const scale = target > prev ? target : prev + (target - prev) * 0.03;
+    scales.set(canvas, scale);
+
+    const padL = 34, pw = w - padL - 2, ph = h - 8, mid = 4 + ph / 2;
+    ctx.font = '600 11px "Open Sans", Arial, sans-serif';
+    ctx.fillStyle = '#B4B8C9'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 1;
+    [1, 0, -1].forEach(f => {
+      const y = Math.round(mid - f * ph / 2) + 0.5;
+      ctx.strokeStyle = f === 0 ? 'rgba(180,184,201,0.4)' : 'rgba(180,184,201,0.16)';
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w, y); ctx.stroke();
+      const v = f * scale; ctx.fillText(Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(1), padL - 6, Math.min(Math.max(y, 8), h - 8));
+    });
+    ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
+    ['z', 'y', 'x'].forEach(k => {
+      ctx.strokeStyle = COL[k]; ctx.beginPath();
+      buf.forEach((p, i) => {
+        const x = padL + pw * (1 - (now - p.t) / WINDOW_MS), y = mid - (p[k] / scale) * (ph / 2);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+    });
+  }
+
+  function frame() {
+    const now = performance.now();
+    if ($('live').classList.contains('active')) {
+      trim(magBuf, now, COMFORT_WIN_MS); trim(yawBuf, now, 1500);
+      drawChart($('accCanvas'), acc, 1, now);
+      drawChart($('gyroCanvas'), gyro, 20, now);
+
+      // Comfort: rolling variance of acc magnitude -> percentile via quantile interpolation
+      const v = variance(magBuf);
+      const target = magBuf.length >= 5 ? comfortFromVariance(v) : null;
+      if (target != null) {
+        comfortShown = comfortShown == null ? target : comfortShown + (target - comfortShown) * (target < comfortShown ? 0.25 : 0.04);
+        const c = Math.round(comfortShown);
+        $('comfortVal').textContent = c;
+        $('comfortLabel').textContent = comfortLabel(c);
+        const bar = $('comfortBar'); bar.style.width = c + '%'; bar.style.backgroundColor = scoreColor(c / 100);
+      }
+
+      // Swerve: peak steering rate over the last second -> 0..100
+      let peak = 0; for (const p of yawBuf) if (now - p.t < 1000) peak = Math.max(peak, Math.abs(p.v));
+      const sTarget = Math.max(0, Math.min(100, 100 * (1 - Math.exp(-Math.max(0, peak - 6) / 40))));
+      swerveShown += (sTarget - swerveShown) * (sTarget > swerveShown ? 0.3 : 0.05);
+      if (yawBuf.length) {
+        const s = Math.round(swerveShown);
+        $('swerveVal').textContent = s;
+        $('swerveLabel').textContent = swerveLabel(s);
+        const bar = $('swerveBar'); bar.style.width = s + '%'; bar.style.backgroundColor = scoreColor(1 - s / 100);
+      }
+
+      // Idle reset: back to the instructions when nobody is on the bike
+      if (v > 0.05 || peak > 12) lastActive = now;
+      if (!demo && now - lastActive > IDLE_RESET_MS) showScreen('welcome');
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
